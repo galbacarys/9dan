@@ -2,7 +2,9 @@
   "name": "watchface-c",
   "author": "MakeAwesomeHappen",
   "version": "1.0.0",
-  "keywords": ["pebble-app"],
+  "keywords": [
+    "pebble-app"
+  ],
   "private": true,
   "dependencies": {},
   "pebble": {
@@ -17,11 +19,25 @@
     "watchapp": {
       "watchface": true
     },
-    "messageKeys": [
-      "dummy"
-    ],
+    "messageKeys": [],
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "raw",
+          "name": "EASY",
+          "file": "easy.bin"
+        },
+        {
+          "type": "raw",
+          "name": "INTERMEDIATE",
+          "file": "intermediate.bin"
+        },
+        {
+          "type": "raw",
+          "name": "HARD",
+          "file": "hard.bin"
+        }
+      ]
     }
   }
 }
