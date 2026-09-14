@@ -22,13 +22,17 @@
       "watchface": true
     },
     "capabilities": [
-      "configurable"
+      "configurable",
+      "location"
     ],
     "messageKeys": [
       "ProblemSet",
       "ResetSeconds",
       "NewProblemSeconds",
-      "ClockFormat"
+      "ClockFormat",
+      "TEMPERATURE",
+      "CONDITIONS",
+      "REQUEST_WEATHER"
     ],
     "resources": {
       "media": [

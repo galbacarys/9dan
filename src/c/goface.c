@@ -22,6 +22,7 @@
 #define CLR_WHITE    GColorWhite
 #define CLR_GRAY     GColorFromRGB(0x80, 0x80, 0x80)
 #define CLR_MARKER   GColorFromRGB(0xff, 0x22, 0x22) // last-move ring
+#define CLR_DONE     GColorFromRGB(0x22, 0xc0, 0x3c) // puzzle-complete green
 
 // ---- state ----
 static Window *s_window;
@@ -34,6 +35,8 @@ static int s_step = -1;
 static int s_mark_x, s_mark_y;           // last played stone for red ring
 static bool s_has_mark;
 static int s_battery_pct = 100;
+static int s_temperature = 0;      // outside temp (C), 0 = not fetched
+static bool s_has_weather = false;
 static Settings s_settings;
 
 static AppTimer *s_reset_timer = NULL;       // reset board to setup
@@ -49,6 +52,7 @@ static void set_random_problem(void);
 static void new_problem_timeout(void *data);
 static void advance(void);
 static void cancel_timers(void);
+static void request_weather(void);
 
 // ---- layout ----
 static void layout_board(GRect b) {
@@ -150,10 +154,16 @@ static void draw_board(GContext *ctx) {
   }
 }
 
-static void draw_turn_indicator(GContext *ctx, int turn_color) {
+static void draw_turn_indicator(GContext *ctx, int turn_color, bool done) {
   GRect bounds = layer_get_bounds(s_canvas);
   int tx = bounds.size.w - 18;
   int ty = bounds.size.h - 16;
+  if (done) {
+    // puzzle complete: show a solid green circle in place of color-to-play
+    fill_circle(ctx, CLR_DONE, tx, ty, TURN_R);
+    stroke_circle(ctx, CLR_GRAY, tx, ty, TURN_RING, 1);
+    return;
+  }
   if (turn_color == 0) {
     fill_circle(ctx, CLR_BLACK_ST, tx, ty, TURN_R);
     stroke_circle(ctx, CLR_W_ST_OUT, tx, ty, TURN_R, 1);
@@ -211,14 +221,27 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   static char batt_str[16];
   snprintf(batt_str, sizeof(batt_str), "%d%%", s_battery_pct);
   int t_w = measure_text(time_str, time_font).w;
-  GRect bbox = GRect(8 + t_w + 6, b.size.h - 22, 60, 16);
+  int bx = 8 + t_w + 6;
+  GRect bbox = GRect(bx, b.size.h - 22, 60, 16);
   graphics_context_set_text_color(ctx, CLR_GRAY);
   graphics_draw_text(ctx, batt_str, small_font, bbox,
       GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 
-  // turn indicator stone, bottom-right
+  // outside temperature, just right of the battery (same small font)
+  if (s_has_weather) {
+    int b_w = measure_text(batt_str, small_font).w;
+    static char temp_str[16];
+    snprintf(temp_str, sizeof(temp_str), "%d°", s_temperature);
+    GRect temp_box = GRect(bx + b_w + 6, b.size.h - 22, 60, 16);
+    graphics_context_set_text_color(ctx, CLR_GRAY);
+    graphics_draw_text(ctx, temp_str, small_font, temp_box,
+        GTextOverflowModeFill, GTextAlignmentLeft, NULL);
+  }
+
+  // turn indicator stone, bottom-right; green when the puzzle is solved
   int turn_color = (s_step + 1) % 2;
-  draw_turn_indicator(ctx, turn_color);
+  bool done = (s_step + 1) >= (int)s_problem.line_len;
+  draw_turn_indicator(ctx, turn_color, done);
 }
 
 // ---- reset timer (returns board to setup after idle) ----
@@ -271,6 +294,22 @@ static void battery_handler(BatteryChargeState state) {
 // ---- time tick (minute) ----
 static void tick_handler(struct tm *tick, TimeUnits units_changed) {
   if (s_canvas) layer_mark_dirty(s_canvas);
+
+  // refresh weather every 30 minutes
+  if (tick->tm_min % 30 == 0) {
+    request_weather();
+  }
+}
+
+// ---- weather request (ask the phone to fetch Open-Meteo temp + send back) ----
+static void request_weather(void) {
+  DictionaryIterator *iter;
+  if (app_message_outbox_begin(&iter) == APP_MSG_OK) {
+    dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
+    if (app_message_outbox_send() != APP_MSG_OK) {
+      APP_LOG(APP_LOG_LEVEL_WARNING, "outbox send failed");
+    }
+  }
 }
 
 // ---- phone config (Clay -> AppMessage) ----
@@ -283,6 +322,16 @@ static int num_tuple(DictionaryIterator *iter, uint32_t key, int fallback) {
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   bool changed = false;
+
+  // outside temperature from the phone (Open-Meteo via pkjs); does NOT count
+  // as a settings change (we don't reload a fresh problem for it).
+  Tuple *temp_t = dict_find(iter, MESSAGE_KEY_TEMPERATURE);
+  if (temp_t) {
+    s_temperature = (int)temp_t->value->int32;
+    s_has_weather = true;
+    if (s_canvas) layer_mark_dirty(s_canvas);
+    APP_LOG(APP_LOG_LEVEL_INFO, "temp %d", s_temperature);
+  }
 
   Tuple *ps = dict_find(iter, MESSAGE_KEY_ProblemSet);
   if (ps) {
@@ -350,6 +399,9 @@ static void init(void) {
   // phone config (Clay) -> AppMessage
   app_message_register_inbox_received(inbox_received_handler);
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+
+  // ask the phone for outside temperature (Open-Meteo via pkjs)
+  request_weather();
 
   set_random_problem();
   APP_LOG(APP_LOG_LEVEL_INFO, "goface-c init done");
