@@ -6,21 +6,16 @@
   "private": true,
   "dependencies": {},
   "pebble": {
-    "displayName": "watchface-c",
+    "displayName": "goface",
     "uuid": "c24e1fe7-52fb-471a-b2a3-ebf70232dbb5",
     "sdkVersion": "3",
     "enableMultiJS": true,
     "targetPlatforms": [
-      "aplite",
-      "basalt",
-      "chalk",
-      "diorite",
       "emery",
-      "flint",
       "gabbro"
     ],
     "watchapp": {
-      "watchface": false
+      "watchface": true
     },
     "messageKeys": [
       "dummy"
