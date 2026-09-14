@@ -113,30 +113,21 @@ static void advance(void) {
   APP_LOG(APP_LOG_LEVEL_INFO, "advance step=%d move=(%d,%d)", s_step, x, y);
 }
 
-/* ---- click handlers: prove buttons fire in a watchface ---- */
-static void prv_select_click(ClickRecognizerRef rec, void *ctx) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "SELECT clicked");
+/* ---- click handlers: back button advances in a watchface ---- */
+static void prv_back_click(ClickRecognizerRef rec, void *ctx) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "BACK clicked");
   advance();
 }
-static void prv_up_click(ClickRecognizerRef rec, void *ctx) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "UP clicked");
-  advance();
-}
-static void prv_down_click(ClickRecognizerRef rec, void *ctx) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "DOWN clicked");
-  advance();
-}
-static void prv_long_select(ClickRecognizerRef rec, void *ctx) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "LONG SELECT: reset");
+static void prv_long_back(ClickRecognizerRef rec, void *ctx) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "LONG BACK: reset");
   light_enable_interaction();
   fill_initial();
   draw_thing();
 }
 static void click_config_provider(void *context) {
-  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
-  window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);
-  window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click);
-  window_long_click_subscribe(BUTTON_ID_SELECT, 500, prv_long_select, NULL);
+  // In a watchface only the back button is routable (up/down=timeline, select=launcher).
+  window_single_click_subscribe(BUTTON_ID_BACK, prv_back_click);
+  window_long_click_subscribe(BUTTON_ID_BACK, 500, prv_long_back, NULL);
 }
 
 /* ---- time ---- */
