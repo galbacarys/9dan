@@ -6,7 +6,9 @@
     "pebble-app"
   ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "@rebble/clay": "^1.1.0"
+  },
   "pebble": {
     "displayName": "goface",
     "uuid": "c24e1fe7-52fb-471a-b2a3-ebf70232dbb5",
@@ -19,7 +21,15 @@
     "watchapp": {
       "watchface": true
     },
-    "messageKeys": [],
+    "capabilities": [
+      "configurable"
+    ],
+    "messageKeys": [
+      "ProblemSet",
+      "ResetSeconds",
+      "NewProblemSeconds",
+      "ClockFormat"
+    ],
     "resources": {
       "media": [
         {

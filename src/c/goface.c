@@ -1,5 +1,8 @@
 #include <pebble.h>
+#include <string.h>
 #include "problems.h"
+#include "settings.h"
+#include "message_keys.auto.h"
 
 // ---- geometry ----
 #define BOARD_PX 9
@@ -20,8 +23,6 @@
 #define CLR_GRAY     GColorFromRGB(0x80, 0x80, 0x80)
 #define CLR_MARKER   GColorFromRGB(0xff, 0x22, 0x22) // last-move ring
 
-#define RESET_MS 10000  // ms of inactivity before the board resets to setup
-
 // ---- state ----
 static Window *s_window;
 static Layer  *s_canvas;
@@ -33,7 +34,10 @@ static int s_step = -1;
 static int s_mark_x, s_mark_y;           // last played stone for red ring
 static bool s_has_mark;
 static int s_battery_pct = 100;
-static AppTimer *s_reset_timer = NULL;
+static Settings s_settings;
+
+static AppTimer *s_reset_timer = NULL;       // reset board to setup
+static AppTimer *s_new_problem_timer = NULL; // load a fresh problem
 
 static int ix_x(int i) { return s_board_x0 + i * SPACING; }
 static int ix_y(int i) { return s_board_y0 + i * SPACING; }
@@ -42,7 +46,9 @@ static int ix_y(int i) { return s_board_y0 + i * SPACING; }
 static void reset_board(void);
 static void reset_timeout(void *data);
 static void set_random_problem(void);
+static void new_problem_timeout(void *data);
 static void advance(void);
+static void cancel_timers(void);
 
 // ---- layout ----
 static void layout_board(GRect b) {
@@ -52,8 +58,24 @@ static void layout_board(GRect b) {
   if (s_board_y0 < 2) s_board_y0 = 2;
 }
 
+// ---- timers ----
+static void cancel_timers(void) {
+  if (s_reset_timer) { app_timer_cancel(s_reset_timer); s_reset_timer = NULL; }
+  if (s_new_problem_timer) { app_timer_cancel(s_new_problem_timer); s_new_problem_timer = NULL; }
+}
+
+// Arm both inactivity timers (called on each tap/advance).
+static void arm_timers(void) {
+  cancel_timers();
+  if (s_settings.reset_ms > 0)
+    s_reset_timer = app_timer_register((uint32_t)s_settings.reset_ms, reset_timeout, NULL);
+  if (s_settings.new_problem_ms > 0)
+    s_new_problem_timer = app_timer_register((uint32_t)s_settings.new_problem_ms, new_problem_timeout, NULL);
+}
+
 // ---- board state ----
 static void reset_board(void) {
+  cancel_timers();
   memset(s_board, 0, sizeof(s_board));
   for (uint16_t i = 0; i < s_problem.setup_len; i++) {
     Move *m = &s_problem.setup[i];
@@ -74,10 +96,7 @@ static void advance(void) {
   s_has_mark = true;
   light_enable_interaction();
 
-  // arm the inactivity reset
-  if (s_reset_timer) app_timer_cancel(s_reset_timer);
-  s_reset_timer = app_timer_register(RESET_MS, reset_timeout, NULL);
-
+  arm_timers();
   layer_mark_dirty(s_canvas);
 }
 
@@ -169,13 +188,17 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
     }
   }
 
-  // clock, bottom-left (12-hour with AM/PM)
+  // clock, bottom-left (12-hour AM/PM by default; 24-hour if configured)
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
-  int h = t->tm_hour % 12; if (h == 0) h = 12;
-  const char *ampm = t->tm_hour < 12 ? "AM" : "PM";
   static char time_str[16];
-  snprintf(time_str, sizeof(time_str), "%d:%02d %s", h, t->tm_min, ampm);
+  if (s_settings.clock_24h) {
+    snprintf(time_str, sizeof(time_str), "%02d:%02d", t->tm_hour, t->tm_min);
+  } else {
+    int h = t->tm_hour % 12; if (h == 0) h = 12;
+    const char *ampm = t->tm_hour < 12 ? "AM" : "PM";
+    snprintf(time_str, sizeof(time_str), "%d:%02d %s", h, t->tm_min, ampm);
+  }
 
   GFont time_font = fonts_get_system_font(FONT_KEY_ROBOTO_CONDENSED_21);
   GFont small_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
@@ -198,10 +221,16 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   draw_turn_indicator(ctx, turn_color);
 }
 
-// ---- reset timer ----
+// ---- reset timer (returns board to setup after idle) ----
 static void reset_timeout(void *data) {
   s_reset_timer = NULL;
   reset_board();
+}
+
+// ---- new-problem timer (loads a fresh problem after longer idle) ----
+static void new_problem_timeout(void *data) {
+  s_new_problem_timer = NULL;
+  set_random_problem();
 }
 
 // ---- input: accelerometer tap is the ONLY watchface-native input ----
@@ -216,14 +245,21 @@ static void focus_handler(bool in_focus) {
 }
 
 static void set_random_problem(void) {
-  // choose a random difficulty set, then a random problem within it
-  DiffId diff = (DiffId)(rand() % NUM_DIFF);
+  s_new_problem_timer = NULL;   // fired; don't re-arm here
+  // choose difficulty per settings (0 = random across all sets)
+  DiffId diff;
+  if (s_settings.problem_set == 0) {
+    diff = (DiffId)(rand() % NUM_DIFF);
+  } else {
+    diff = (DiffId)(s_settings.problem_set - 1);
+    if (diff > NUM_DIFF - 1) diff = (DiffId)(rand() % NUM_DIFF);
+  }
   uint16_t count = problems_load(diff);
   if (count == 0) return;
   uint16_t idx = (uint16_t)(rand() % count);
   if (problems_get(idx, &s_problem) != 0) return;
   reset_board();
-  APP_LOG(APP_LOG_LEVEL_INFO, "goface-c loaded: %u %s", (unsigned)count, "set");
+  APP_LOG(APP_LOG_LEVEL_INFO, "goface-c loaded: %u set=%d", (unsigned)count, (int)s_settings.problem_set);
 }
 
 // ---- battery ----
@@ -235,6 +271,42 @@ static void battery_handler(BatteryChargeState state) {
 // ---- time tick (minute) ----
 static void tick_handler(struct tm *tick, TimeUnits units_changed) {
   if (s_canvas) layer_mark_dirty(s_canvas);
+}
+
+// ---- phone config (Clay -> AppMessage) ----
+static int num_tuple(DictionaryIterator *iter, uint32_t key, int fallback) {
+  Tuple *t = dict_find(iter, key);
+  if (!t) return fallback;
+  if (t->type == TUPLE_CSTRING) return atoi(t->value->cstring);
+  return (int)t->value->int32;
+}
+
+static void inbox_received_handler(DictionaryIterator *iter, void *context) {
+  bool changed = false;
+
+  Tuple *ps = dict_find(iter, MESSAGE_KEY_ProblemSet);
+  if (ps) {
+    int v = (ps->type == TUPLE_CSTRING) ? atoi(ps->value->cstring) : (int)ps->value->int32;
+    if (v >= 0 && v <= 3) { s_settings.problem_set = (int8_t)v; changed = true; }
+  }
+  int reset_s = num_tuple(iter, MESSAGE_KEY_ResetSeconds, -1);
+  if (reset_s >= 0) { s_settings.reset_ms = reset_s * 1000; changed = true; }
+  int new_s = num_tuple(iter, MESSAGE_KEY_NewProblemSeconds, -1);
+  if (new_s >= 0) { s_settings.new_problem_ms = new_s * 1000; changed = true; }
+  Tuple *cf = dict_find(iter, MESSAGE_KEY_ClockFormat);
+  if (cf) {
+    const char *s = (cf->type == TUPLE_CSTRING) ? cf->value->cstring : NULL;
+    bool c24 = s ? (strcmp(s, "24") == 0) : (cf->value->int32 == 24);
+    s_settings.clock_24h = c24; changed = true;
+  }
+
+  if (changed) {
+    settings_save(&s_settings);
+    cancel_timers();
+    set_random_problem();   // re-pick a problem respecting the new difficulty
+    if (s_canvas) layer_mark_dirty(s_canvas);
+    APP_LOG(APP_LOG_LEVEL_INFO, "goface-c settings updated");
+  }
 }
 
 static void main_window_load(Window *window) {
@@ -252,6 +324,8 @@ static void main_window_unload(Window *window) {
 
 static void init(void) {
   srand(time(NULL));
+  settings_load(&s_settings);
+
   s_window = window_create();
   window_set_background_color(s_window, GColorBlack);
   window_set_window_handlers(s_window, (WindowHandlers){
@@ -273,12 +347,17 @@ static void init(void) {
   // new random problem on (re)focus
   app_focus_service_subscribe(focus_handler);
 
+  // phone config (Clay) -> AppMessage
+  app_message_register_inbox_received(inbox_received_handler);
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+
   set_random_problem();
   APP_LOG(APP_LOG_LEVEL_INFO, "goface-c init done");
 }
 
 static void deinit(void) {
-  if (s_reset_timer) app_timer_cancel(s_reset_timer);
+  cancel_timers();
+  app_message_deregister_callbacks();
   accel_tap_service_unsubscribe();
   battery_state_service_unsubscribe();
   app_focus_service_unsubscribe();
