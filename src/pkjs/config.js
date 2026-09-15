@@ -2,7 +2,7 @@
 module.exports = [
   {
     "type": "heading",
-    "defaultValue": "goface Settings"
+    "defaultValue": "9dan Settings"
   },
   {
     "type": "section",
