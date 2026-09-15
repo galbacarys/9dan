@@ -1,8 +1,7 @@
-# goface — Pebble C watchface
+# 9dan — Pebble C watchface
 
 A Pebble watchface that shows **tsumego (go problem) batteries** on a 9 × 9 board.
-Tap/shake to step through the solution, with real Go capture rules so captured
-stones disappear as you go.
+Shake your wrist to step through the solution!
 
 ![Screenshot TBD](docs/screenshot.png)
 
@@ -16,10 +15,9 @@ stones disappear as you go.
   removed).
 - **Clock** (12h AM/PM or 24h), **battery %**, live **outside temperature**
   (Open-Meteo via the phone — free, no API key).
-- A **phone config page** (Clay, offline) to set: problem set, board-reset idle
+- **Config options:** problem set (easy, medium, hard), board-reset idle
   (10/30/60 s), new-problem idle (5/15/60 min), clock format, temp units (°C/°F).
 - **Green "solved" indicator**, red last-move ring, color-to-play turn stone.
-- Everything persisted on the watch across reboots.
 
 ## Quick start
 
@@ -63,4 +61,6 @@ decoder and capture rules against the shipped `.bin` without a watch.
 
 Problem data is from [Go Game Guru](https://gogameguru.com/) and is © their
 collection, licensed CC BY-NC-SA 4.0 (see `vendor/go-problems/LICENSE`). The
-watchface code here is an experiment.
+watchface code here is a noncommercial derived work.
+
+This repository is licensed under the MIT license.
