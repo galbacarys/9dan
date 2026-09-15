@@ -3,7 +3,7 @@
 A Pebble watchface that shows **tsumego (go problem) batteries** on a 9 × 9 board.
 Shake your wrist to step through the solution!
 
-![Screenshot TBD](docs/screenshot.png)
+![Screenshot](docs/screenshot.png)
 
 ## Features
 
