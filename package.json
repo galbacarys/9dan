@@ -1,6 +1,6 @@
 {
-  "name": "watchface-c",
-  "author": "MakeAwesomeHappen",
+  "name": "9dan-c",
+  "author": "gabethebando-dot-cc",
   "version": "1.0.0",
   "keywords": [
     "pebble-app"
@@ -10,7 +10,7 @@
     "@rebble/clay": "^1.1.0"
   },
   "pebble": {
-    "displayName": "goface",
+    "displayName": "9dan",
     "uuid": "c24e1fe7-52fb-471a-b2a3-ebf70232dbb5",
     "sdkVersion": "3",
     "enableMultiJS": true,
