@@ -68,6 +68,25 @@ module.exports = [
     ]
   },
   {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Weather"
+      },
+      {
+        "type": "select",
+        "messageKey": "Units",
+        "defaultValue": "C",
+        "label": "Temperature units",
+        "options": [
+          { "label": "Celsius (°C)", "value": "C" },
+          { "label": "Fahrenheit (°F)", "value": "F" }
+        ]
+      }
+    ]
+  },
+  {
     "type": "submit",
     "defaultValue": "Save Settings"
   }

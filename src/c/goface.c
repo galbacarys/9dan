@@ -333,6 +333,12 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     APP_LOG(APP_LOG_LEVEL_INFO, "temp %d", s_temperature);
   }
 
+  // Units came from the config page: just re-request weather so the displayed
+  // temp reflects the new unit. Not a settings change (no problem reload).
+  if (dict_find(iter, MESSAGE_KEY_Units)) {
+    request_weather();
+  }
+
   Tuple *ps = dict_find(iter, MESSAGE_KEY_ProblemSet);
   if (ps) {
     int v = (ps->type == TUPLE_CSTRING) ? atoi(ps->value->cstring) : (int)ps->value->int32;

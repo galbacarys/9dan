@@ -32,7 +32,8 @@
       "ClockFormat",
       "TEMPERATURE",
       "CONDITIONS",
-      "REQUEST_WEATHER"
+      "REQUEST_WEATHER",
+      "Units"
     ],
     "resources": {
       "media": [

@@ -8,6 +8,14 @@ var clayConfig = require('./config');
 var clay = new Clay(clayConfig);
 
 // ---- weather (Open-Meteo, phone-side) ----
+// Temperature units come from the Clay config page; stored in localStorage by Clay.
+function weatherUnits() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('clay-settings') || '{}');
+    return saved.Units === 'F' ? 'F' : 'C';
+  } catch (e) { return 'C'; }
+}
+
 function xhrRequest(url, callback) {
   var xhr = new XMLHttpRequest();
   xhr.onload = function () { callback(this.responseText); };
@@ -20,6 +28,7 @@ function locationSuccess(pos) {
       'latitude=' + pos.coords.latitude +
       '&longitude=' + pos.coords.longitude +
       '&current=temperature_2m';
+  if (weatherUnits() === 'F') url += '&temperature_unit=fahrenheit';
 
   xhrRequest(url, function (responseText) {
     var json;
