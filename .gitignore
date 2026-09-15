@@ -1,2 +1,8 @@
 .lock-waf_linux_build
 build/
+node_modules/
+package-lock.json
+
+# host-side test artifacts (regenerable)
+test/*_test
+test/*.txt

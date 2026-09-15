@@ -2,9 +2,13 @@
   "name": "watchface-c",
   "author": "MakeAwesomeHappen",
   "version": "1.0.0",
-  "keywords": ["pebble-app"],
+  "keywords": [
+    "pebble-app"
+  ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "@rebble/clay": "^1.1.0"
+  },
   "pebble": {
     "displayName": "goface",
     "uuid": "c24e1fe7-52fb-471a-b2a3-ebf70232dbb5",
@@ -17,11 +21,38 @@
     "watchapp": {
       "watchface": true
     },
+    "capabilities": [
+      "configurable",
+      "location"
+    ],
     "messageKeys": [
-      "dummy"
+      "ProblemSet",
+      "ResetSeconds",
+      "NewProblemSeconds",
+      "ClockFormat",
+      "TEMPERATURE",
+      "CONDITIONS",
+      "REQUEST_WEATHER",
+      "Units"
     ],
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "raw",
+          "name": "EASY",
+          "file": "easy.bin"
+        },
+        {
+          "type": "raw",
+          "name": "INTERMEDIATE",
+          "file": "intermediate.bin"
+        },
+        {
+          "type": "raw",
+          "name": "HARD",
+          "file": "hard.bin"
+        }
+      ]
     }
   }
 }
