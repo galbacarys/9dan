@@ -30,21 +30,29 @@ module.exports = [
     "items": [
       {
         "type": "heading",
-        "defaultValue": "Timing (seconds)"
+        "defaultValue": "Timing"
       },
       {
-        "type": "input",
+        "type": "select",
         "messageKey": "ResetSeconds",
         "defaultValue": "10",
-        "label": "Board reset idle (s)",
-        "attributes": { "type": "number", "min": "0", "max": "300" }
+        "label": "Board reset idle",
+        "options": [
+          { "label": "10 seconds", "value": "10" },
+          { "label": "30 seconds", "value": "30" },
+          { "label": "60 seconds", "value": "60" }
+        ]
       },
       {
-        "type": "input",
+        "type": "select",
         "messageKey": "NewProblemSeconds",
-        "defaultValue": "60",
-        "label": "New problem idle (s)",
-        "attributes": { "type": "number", "min": "0", "max": "3600" }
+        "defaultValue": "900",
+        "label": "New problem idle",
+        "options": [
+          { "label": "5 minutes", "value": "300" },
+          { "label": "15 minutes", "value": "900" },
+          { "label": "60 minutes", "value": "3600" }
+        ]
       }
     ]
   },

@@ -131,3 +131,26 @@ void remove_adjacent_captures(uint8_t board[BOARD][BOARD], int y, int x, uint8_t
     }
   }
 }
+
+// Map a board coordinate (0..8) through one of the 8 dihedral symmetries of the
+// square grid. N = BOARD-1 = 8 (max valid coordinate).
+static void sym_map(uint8_t t, uint8_t *x, uint8_t *y) {
+  const uint8_t N = BOARD - 1;
+  uint8_t X = *x, Y = *y;
+  switch (t) {
+    case 0: break;                          // identity
+    case 1: *x = N - Y; *y = X; break;       // rot90 clockwise
+    case 2: *x = N - X; *y = N - Y; break;   // rot180
+    case 3: *x = Y; *y = N - X; break;       // rot270 clockwise
+    case 4: *x = N - X; *y = Y; break;       // reflect across vertical midline (mirror x)
+    case 5: *x = X; *y = N - Y; break;       // reflect across horizontal midline (mirror y)
+    case 6: *x = Y; *y = X; break;           // main diagonal (transpose)
+    case 7: *x = N - Y; *y = N - X; break;   // anti-diagonal
+    default: break;
+  }
+}
+
+void problems_apply_transform(Problem *p, uint8_t t) {
+  for (uint16_t i = 0; i < p->setup_len; i++) sym_map(t, &p->setup[i].x, &p->setup[i].y);
+  for (uint16_t i = 0; i < p->line_len; i++) sym_map(t, &p->line[i].x, &p->line[i].y);
+}

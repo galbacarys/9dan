@@ -281,6 +281,9 @@ static void set_random_problem(void) {
   if (count == 0) return;
   uint16_t idx = (uint16_t)(rand() % count);
   if (problems_get(idx, &s_problem) != 0) return;
+  // random mirror/rotation (0..7 = all 8 board symmetries) for replayability;
+  // the 9x9 grid maps onto itself under every one, so the puzzle stays legal.
+  problems_apply_transform(&s_problem, (uint8_t)(rand() % 8));
   reset_board();
   APP_LOG(APP_LOG_LEVEL_INFO, "goface-c loaded: %u set=%d", (unsigned)count, (int)s_settings.problem_set);
 }

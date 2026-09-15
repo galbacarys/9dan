@@ -36,4 +36,10 @@ bool group_has_liberty(const uint8_t board[BOARD][BOARD], int y, int x, uint8_t 
 // After placing stone of `color` at (y,x): remove any adjacent enemy group with no liberties.
 void remove_adjacent_captures(uint8_t board[BOARD][BOARD], int y, int x, uint8_t color);
 
+// Apply a symmetry (t in 0..7: identity, rot90 cw, rot180, rot270, mirror-x,
+// mirror-y, main diagonal, anti-diagonal) to every stone's coordinates. The 9x9
+// grid is invariant under all 8, orthogonal adjacency and captures are preserved,
+// so a legal puzzle stays legal under every transform. Color/turn order is untouched.
+void problems_apply_transform(Problem *p, uint8_t t);
+
 #endif
