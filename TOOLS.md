@@ -10,18 +10,17 @@ reference. Keep it current; re-read when resuming.
 - SDK 4.33.1 (`pebble sdk list`); Moddable/Alloy is irrelevant here — we build
   pure C (`projectType` default, `src/c/**/*.c` in wscript).
 - Repo on GitHub `galbacarys/9dan` (an experiment; PRs, not straight-to-main).
-- Phone `gabes-s23` on Tailscale at `100.121.218.117`; headless box → no
-  CloudPebble login → always `--phone`.
 
 ### Build & push cycle
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 pebble build                                     # emery + gabbro -> build/watchface-c.pbw
-pebble install --phone 100.121.218.117 build/watchface-c.pbw
-pebble install --phone 100.121.218.117 --logs build/watchface-c.pbw  # one-shot logs
+pebble install --phone <Tailscale Phone IP> build/watchface-c.pbw
+pebble install --phone <Tailscale Phone IP> --logs build/watchface-c.pbw  # one-shot logs
 ```
 
+- **You'll need to query tailscale to see what phones are available. Ask the user which one to install to.**
 - **`--logs` is the only reliable runtime view.** Ctrl-C ends the one-shot stream.
 - **`Connection refused` from a pinging phone = Developer Connection is off** in
   the Pebble app (phone-side WebSocket), NOT a network problem. Restart the app.
